@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+*.log.*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Release artifacts
+releases/**/*.tar.gz
+releases/**/SHA256SUMS
+
+# Local runtime output
+.cache/
+.local/
+
+# Secrets / local env overrides
+.env
+*.local.env

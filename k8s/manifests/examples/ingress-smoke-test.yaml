@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-smoke-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-smoke-nginx
+  template:
+    metadata:
+      labels:
+        app: k8s-smoke-nginx
+    spec:
+      containers:
+        - name: nginx
+          image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/nginx:stable-alpine
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-smoke-nginx
+spec:
+  selector:
+    app: k8s-smoke-nginx
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: k8s-smoke-nginx
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: smoke.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: k8s-smoke-nginx
+                port:
+                  number: 80
