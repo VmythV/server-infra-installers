@@ -183,6 +183,63 @@ curl -fsSL https://k8s-install.example.cn/install.sh | \
   ASSUME_YES=1 CN=1 K8S_DATA_ROOT=/data/kubernetes sh
 ```
 
+## Project Guidelines
+
+Use these rules when adding or changing installers in this repository.
+
+### Repository Scope
+
+- This repository manages installer projects; it is not a single all-in-one installer.
+- One software product must have one independent directory and one independent `install.sh`.
+- Each software product must be independently published and accessed through its own URL.
+- Do not add a root script that installs multiple products.
+- Shared code belongs in `templates/` or `standards/`; runtime installation should stay inside each software directory.
+
+### Installer Behavior
+
+- Default mode must be interactive.
+- Unattended mode must be explicitly enabled with environment variables such as `ASSUME_YES=1` or `NON_INTERACTIVE=1`.
+- All important options must be overridable by environment variables.
+- The installer must be idempotent: if the software is already installed and healthy, it should skip destructive work.
+- Do not run destructive cleanup by default. Commands such as `kubeadm reset`, deleting data directories, clearing iptables, or removing user files require an explicit future cleanup command or confirmation.
+
+### China Mainland Support
+
+- Default mode should use official upstream sources and images.
+- `CN=1` must switch to China-accessible package sources, download URLs, and image rewrite behavior.
+- Image rewrite must be controlled by `REWRITE_IMAGES=true` or `CN=1`.
+- The mirror prefix must be configurable with `IMAGE_MIRROR_PREFIX`.
+- Before publishing CN artifacts, run image audit, image rewrite, and domain checks.
+- Runtime install in `CN=1` mode must not depend on GitHub, `raw.githubusercontent.com`, `registry.k8s.io`, `docker.io`, `quay.io`, `ghcr.io`, `gcr.io`, or `k8s.gcr.io`.
+
+### Data and Storage
+
+- Installers must support custom data roots, for example `K8S_DATA_ROOT`.
+- Different data types must be stored in separate subdirectories.
+- For Kubernetes, containerd image storage, containerd state, kubelet data, etcd data, Pod logs, manifests, resources, backups, PV roots, and PVC roots must be configurable.
+- Installers must not write workload data into `/tmp` or the script directory.
+
+### Logging and Failure Records
+
+- Every step must be logged.
+- Failures must record the step name, command, exit code, start/end time, and log path.
+- Use a normal log file and a structured step log, such as JSONL.
+- Keep state files under `/var/lib/<software>-installer/`.
+
+### Release and OSS / CDN
+
+- Release packages must include SHA256 checksums.
+- The public `install.sh` must be uploaded together with release tarballs and `SHA256SUMS`.
+- OSS / CDN paths must match the installer `RELEASE_BASE_URL`, or users must override `RELEASE_BASE_URL` at runtime.
+- Generated release artifacts should not be committed to Git unless there is a specific reason.
+
+### Shell and Compatibility
+
+- Prefer POSIX `sh` for installer scripts.
+- Keep scripts readable and split large workflows into step scripts.
+- Support common server distributions first, then expand compatibility deliberately.
+- Avoid hidden network access. Downloads must be visible in config or release docs.
+
 ## Logs
 
 Kubernetes installer logs:
@@ -332,3 +389,53 @@ curl -fsSL https://your-oss.example.com/k8s/install.sh | \
 ```bash
 curl -fsSL https://k8s-install.example.cn/install.sh | CN=1 sh
 ```
+
+### 项目编写规范
+
+新增或修改安装脚本时遵循以下规则。
+
+#### 仓库边界
+
+- 本仓库用于管理多个基础软件安装脚本项目，不是一个统一安装所有软件的脚本。
+- 一个软件一个独立目录，一个独立 `install.sh`。
+- 每个软件独立发布、独立访问、独立安装。
+- 不添加根目录总安装入口。
+- 公共代码放到 `templates/` 或 `standards/`，实际安装逻辑留在各软件目录中。
+
+#### 安装行为
+
+- 默认必须支持交互式安装。
+- 无人值守安装必须显式通过环境变量开启，例如 `ASSUME_YES=1` 或 `NON_INTERACTIVE=1`。
+- 关键参数必须支持环境变量覆盖。
+- 脚本必须幂等：如果软件已经安装且健康，不应重复破坏性安装。
+- 默认不执行破坏性清理，例如 `kubeadm reset`、删除数据目录、清空 iptables、删除用户文件等。
+
+#### 国内环境支持
+
+- 默认模式使用官方源、官方地址和官方镜像。
+- `CN=1` 启用中国大陆可访问的软件源、下载地址和镜像改写。
+- 镜像改写由 `CN=1` 或 `REWRITE_IMAGES=true` 控制。
+- 镜像前缀必须可以通过 `IMAGE_MIRROR_PREFIX` 配置。
+- 发布国内版本前必须执行镜像审计、镜像改写和域名检查。
+- `CN=1` 运行时不能依赖 GitHub、`raw.githubusercontent.com`、`registry.k8s.io`、`docker.io`、`quay.io`、`ghcr.io`、`gcr.io`、`k8s.gcr.io`。
+
+#### 数据目录
+
+- 安装脚本必须支持自定义数据根目录，例如 `K8S_DATA_ROOT`。
+- 不同数据类型必须拆分到不同子目录。
+- Kubernetes 需要支持自定义 containerd 镜像目录、containerd 状态目录、kubelet 数据目录、etcd 数据目录、Pod 日志目录、manifest 目录、资源目录、备份目录、PV/PVC 根目录。
+- 不允许把业务数据写入 `/tmp` 或脚本目录。
+
+#### 日志和失败记录
+
+- 每一步操作都必须记录日志。
+- 失败时必须记录步骤名、命令、退出码、开始/结束时间和日志路径。
+- 同时保留普通日志和结构化步骤日志。
+- 状态文件放到 `/var/lib/<software>-installer/`。
+
+#### 发布规范
+
+- 发布包必须带 SHA256 校验。
+- 公开的 `install.sh`、release tar 包和 `SHA256SUMS` 必须一起上传。
+- OSS/CDN 路径必须和 `RELEASE_BASE_URL` 匹配，否则执行时必须覆盖 `RELEASE_BASE_URL`。
+- 生成的 release tar 包默认不提交到 Git。
