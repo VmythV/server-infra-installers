@@ -4,7 +4,7 @@ Project-managed one-click installers for infrastructure software.
 
 This repository does **not** provide a single installer that installs everything. Each software product has its own directory, installer script, release artifacts, and public install URL.
 
-The first supported installer is Kubernetes. More installers, such as Docker, can be added later as independent software directories.
+The first supported installers are Kubernetes and Docker. More installers can be added later as independent software directories.
 
 ## Install Kubernetes
 
@@ -24,6 +24,26 @@ Unattended example:
 
 ```bash
 curl -fsSL https://k8s-install.example.cn/install.sh | ASSUME_YES=1 CN=1 K8S_DATA_ROOT=/data/kubernetes sh
+```
+
+## Install Docker
+
+Default interactive install:
+
+```bash
+curl -fsSL https://docker-install.example.cn/install.sh | sh
+```
+
+China mainland network mode:
+
+```bash
+curl -fsSL https://docker-install.example.cn/install.sh | CN=1 sh
+```
+
+Unattended example:
+
+```bash
+curl -fsSL https://docker-install.example.cn/install.sh | ASSUME_YES=1 CN=1 DOCKER_DATA_ROOT=/data/docker sh
 ```
 
 ## What Kubernetes Installs
@@ -53,7 +73,7 @@ curl -fsSL https://k8s-install.example.cn/install.sh | ASSUME_YES=1 CN=1 K8S_DAT
 
 ```text
 .
-├── docker/                 # Docker installer placeholder
+├── docker/                 # Docker installer
 ├── k8s/                    # Kubernetes installer
 │   ├── install.sh
 │   ├── config.env
@@ -92,6 +112,25 @@ Build release packages:
 ```bash
 ./k8s/tools/build-release.sh
 ```
+
+## Docker Development
+
+Build Docker release packages:
+
+```bash
+./docker/tools/build-release.sh
+```
+
+Important Docker environment variables:
+
+```bash
+DOCKER_DATA_ROOT=/data/docker
+DOCKER_REGISTRY_MIRRORS=https://mirror.example.com
+CN=1
+ASSUME_YES=1
+```
+
+For Docker, image acceleration uses Docker daemon registry mirrors. Set `DOCKER_REGISTRY_MIRRORS` to a comma-separated list when your network requires it.
 
 ## Kubernetes Release for China Mainland
 
@@ -183,6 +222,54 @@ curl -fsSL https://k8s-install.example.cn/install.sh | \
   ASSUME_YES=1 CN=1 K8S_DATA_ROOT=/data/kubernetes sh
 ```
 
+## Docker Release and Publishing
+
+Build Docker release artifacts:
+
+```bash
+DOCKER_INSTALLER_VERSION=v1.0.0 ./docker/tools/build-release.sh
+```
+
+The generated files are written to:
+
+```text
+releases/docker/
+├── SHA256SUMS
+├── docker-installer-v1.0.0-linux-amd64.tar.gz
+├── docker-installer-v1.0.0-linux-arm64.tar.gz
+├── docker-installer-v1.0.0-linux-amd64-cn.tar.gz
+└── docker-installer-v1.0.0-linux-arm64-cn.tar.gz
+```
+
+Upload the following files:
+
+```text
+docker/install.sh
+releases/docker/SHA256SUMS
+releases/docker/docker-installer-v1.0.0-linux-amd64.tar.gz
+releases/docker/docker-installer-v1.0.0-linux-arm64.tar.gz
+releases/docker/docker-installer-v1.0.0-linux-amd64-cn.tar.gz
+releases/docker/docker-installer-v1.0.0-linux-arm64-cn.tar.gz
+```
+
+Recommended OSS / CDN layout:
+
+```text
+https://docker-install.example.cn/install.sh
+https://docker-install.example.cn/releases/SHA256SUMS
+https://docker-install.example.cn/releases/docker-installer-v1.0.0-linux-amd64.tar.gz
+https://docker-install.example.cn/releases/docker-installer-v1.0.0-linux-arm64.tar.gz
+https://docker-install.example.cn/releases/docker-installer-v1.0.0-linux-amd64-cn.tar.gz
+https://docker-install.example.cn/releases/docker-installer-v1.0.0-linux-arm64-cn.tar.gz
+```
+
+If you publish to a different domain or path, run the installer with:
+
+```bash
+curl -fsSL https://your-oss.example.com/docker/install.sh | \
+  RELEASE_BASE_URL=https://your-oss.example.com/docker/releases CN=1 sh
+```
+
 ## Project Guidelines
 
 Use these rules when adding or changing installers in this repository.
@@ -251,13 +338,22 @@ Kubernetes installer logs:
 /var/lib/k8s-installer/steps/
 ```
 
+Docker installer logs:
+
+```text
+/var/log/docker-installer.log
+/var/log/docker-installer-steps.jsonl
+/var/lib/docker-installer/state.env
+/var/lib/docker-installer/steps/
+```
+
 ## 中文说明
 
 本仓库用于以项目管理方式维护基础软件的一键安装脚本。
 
 注意：这里不是“一个脚本安装所有软件”。每个软件都有独立目录、独立安装脚本、独立发布包和独立访问地址。
 
-当前已实现 Kubernetes 单节点安装脚本，后续可以继续添加 Docker 等其他软件。
+当前已实现 Kubernetes 单节点安装脚本和 Docker 安装脚本，后续可以继续添加其他软件。
 
 ### Kubernetes 安装
 
@@ -278,6 +374,28 @@ curl -fsSL https://k8s-install.example.cn/install.sh | CN=1 sh
 ```bash
 curl -fsSL https://k8s-install.example.cn/install.sh | ASSUME_YES=1 CN=1 K8S_DATA_ROOT=/data/kubernetes sh
 ```
+
+### Docker 安装
+
+默认交互式安装：
+
+```bash
+curl -fsSL https://docker-install.example.cn/install.sh | sh
+```
+
+中国大陆网络环境：
+
+```bash
+curl -fsSL https://docker-install.example.cn/install.sh | CN=1 sh
+```
+
+无人值守示例：
+
+```bash
+curl -fsSL https://docker-install.example.cn/install.sh | ASSUME_YES=1 CN=1 DOCKER_DATA_ROOT=/data/docker sh
+```
+
+Docker 的镜像加速使用 Docker daemon 的 registry mirrors，不使用 Kubernetes 镜像前缀规则。需要时通过 `DOCKER_REGISTRY_MIRRORS` 配置，多个地址用英文逗号分隔。
 
 ### Kubernetes 安装内容
 
@@ -388,6 +506,53 @@ curl -fsSL https://your-oss.example.com/k8s/install.sh | \
 
 ```bash
 curl -fsSL https://k8s-install.example.cn/install.sh | CN=1 sh
+```
+
+### Docker Release 和上传
+
+构建 Docker 发布包：
+
+```bash
+DOCKER_INSTALLER_VERSION=v1.0.0 ./docker/tools/build-release.sh
+```
+
+生成目录：
+
+```text
+releases/docker/
+├── SHA256SUMS
+├── docker-installer-v1.0.0-linux-amd64.tar.gz
+├── docker-installer-v1.0.0-linux-arm64.tar.gz
+├── docker-installer-v1.0.0-linux-amd64-cn.tar.gz
+└── docker-installer-v1.0.0-linux-arm64-cn.tar.gz
+```
+
+需要上传：
+
+```text
+docker/install.sh
+releases/docker/SHA256SUMS
+releases/docker/docker-installer-v1.0.0-linux-amd64.tar.gz
+releases/docker/docker-installer-v1.0.0-linux-arm64.tar.gz
+releases/docker/docker-installer-v1.0.0-linux-amd64-cn.tar.gz
+releases/docker/docker-installer-v1.0.0-linux-arm64-cn.tar.gz
+```
+
+推荐上传后的路径：
+
+```text
+https://docker-install.example.cn/install.sh
+https://docker-install.example.cn/releases/SHA256SUMS
+https://docker-install.example.cn/releases/docker-installer-v1.0.0-linux-amd64.tar.gz
+https://docker-install.example.cn/releases/docker-installer-v1.0.0-linux-arm64.tar.gz
+https://docker-install.example.cn/releases/docker-installer-v1.0.0-linux-amd64-cn.tar.gz
+https://docker-install.example.cn/releases/docker-installer-v1.0.0-linux-arm64-cn.tar.gz
+```
+
+上传完成后，中国大陆环境即可执行：
+
+```bash
+curl -fsSL https://docker-install.example.cn/install.sh | CN=1 sh
 ```
 
 ### 项目编写规范
